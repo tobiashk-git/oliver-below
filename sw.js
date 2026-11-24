@@ -1,5 +1,5 @@
 /* Offline play. Bump VERSION on every deploy. */
-const VERSION = 'oliver-below-v1';
+const VERSION = 'oliver-below-v2';
 const CORE = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/hero.webp',
   ...['atlas', 'data', 'dungeon', 'engine', 'audio', 'render', 'ui', 'main'].map(n => `js/${n}.js`),
   ...['mon', 'port', 'icon', 'tile', 'prop', 'gate_barrow', 'gate_ice', 'gate_grove', 'gate_caldera', 'gate_temple', 'gate_castle'].map(n => `assets/${n}.webp`),
@@ -23,3 +23,5 @@ async function ranged(req, res) {
   const s = +m[1], x = Math.min(m[2] ? +m[2] : b.byteLength - 1, b.byteLength - 1);
   return new Response(b.slice(s, x + 1), { status: 206, headers: { 'Content-Type': res.headers.get('Content-Type') || 'audio/mpeg', 'Content-Range': `bytes ${s}-${x}/${b.byteLength}`, 'Content-Length': String(x - s + 1), 'Accept-Ranges': 'bytes' } });
 }
+/* other apps on this origin may clear every cache when they update: refill whatever is missing */
+self.addEventListener('message', e => { if (e.data === 'refill') e.waitUntil(caches.open(VERSION).then(async c => { const have = new Set((await c.keys()).map(r => r.url)); await Promise.all(CORE.map(u => have.has(new URL(u, location.href).href) ? 0 : c.add(new Request(u, { cache: 'reload' })).catch(() => 0))); })); });

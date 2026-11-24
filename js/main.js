@@ -96,6 +96,6 @@ const Main = (() => {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { M.stop(); tick(); Save.put(); } else lastAct = performance.now(); }); addEventListener('pagehide', () => Save.put());
 
   loadAll().then(() => { UI.title(); $('title').classList.add('ready'); });
-  if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.includes('claude')) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.includes('claude')) navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage('refill')).catch(() => { });
   return M;
 })();
