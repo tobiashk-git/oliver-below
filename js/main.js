@@ -186,10 +186,12 @@ const Main = (() => {
   for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) pad.addEventListener(t, padUp);
 
   /* ================= buttons: they fire from what was pressed, so a redraw can never swallow a press ================= */
-  let pr = null, holdT = 0, held = false;
+  let pr = null, holdT = 0, held = false, actT = -1e9;
   const foot = $('foot'), unpress = () => foot.querySelectorAll('.dn').forEach(b => b.classList.remove('dn'));
   foot.addEventListener('pointerdown', e => {
     const b = e.target.closest('button'); if (!b || busy()) return; const a = b.dataset.a;
+    /* a thumb working the action button must not brush its neighbours */
+    if (a === 'act') actT = performance.now(); else if (a !== 'wait' && performance.now() - actT < 420) return;
     unpress(); pr = { id: e.pointerId, a, d: { ...b.dataset }, x: e.clientX, y: e.clientY }; held = false; b.classList.add('dn'); clearTimeout(holdT);
     const rest = () => { holdT = setTimeout(() => { held = true; M.rest(); }, 360); };
     if (a === 'wait') rest();
@@ -198,7 +200,7 @@ const Main = (() => {
       else if (k === 'attack') { held = true; const rep = r => { const dt = doAction(r); if (dt && pr && pr.a === 'act') holdT = setTimeout(() => rep(true), dt); }; rep(false); }
     }
   });
-  addEventListener('pointerup', e => { if (!pr || e.pointerId !== pr.id) return; const q = pr; pr = null; clearTimeout(holdT); unpress(); if (held || Math.hypot(e.clientX - q.x, e.clientY - q.y) > 28) return; command(q.a, q.d); });
+  addEventListener('pointerup', e => { if (!pr || e.pointerId !== pr.id) return; const q = pr; pr = null; clearTimeout(holdT); unpress(); if (q.a === 'act') actT = performance.now(); if (held || Math.hypot(e.clientX - q.x, e.clientY - q.y) > 28) return; command(q.a, q.d); });
   addEventListener('pointercancel', e => { if (pr && e.pointerId === pr.id) { pr = null; clearTimeout(holdT); unpress(); } });
   function command(a, d = {}) {
     if (busy()) return; if (a === 'act') { doAction(false); return; } if (a === 'explore') { UI.target(null); return M.explore(); }

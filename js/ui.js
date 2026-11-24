@@ -44,7 +44,7 @@ const UI = (() => {
   U.bar = () => {
     const p = G.p, hp = p.bag.find(b => b.k === 'potion' && b.t === 'heal'), nb = p.bag.some(b => U.better(b) && !b.seen), c = Main.context(); Main.ctxChanged(c.k + (c.m ? '' : c.n));
     put('spells', Object.keys(p.spells).map(s => `<button data-a="spell" data-s="${s}" class="${canCast(s) ? '' : 'low'} ${R.st.target && R.st.target.spell === s ? 'on' : ''}" aria-label="${SPELLS[s].n}">${ic('icon', SPELLS[s].ic)}<i class="n">${SPELLS[s].mp}</i></button>`).join(''));
-    put('bar', `<button data-a="explore" class="txt">Explore</button><button data-a="heal" class="${hp ? '' : 'low'}" aria-label="Drink a healing potion">${ic('icon', 'healing_potion')}<i class="n">${hp ? hp.q : 0}</i></button><button data-a="bag" class="txt">Bag${nb ? '<i class="dot"></i>' : ''}</button>`);
+    put('bar', `<button data-a="bag" class="txt">Bag${nb ? '<i class="dot"></i>' : ''}</button><button data-a="heal" class="${hp ? '' : 'low'}" aria-label="Drink a healing potion">${ic('icon', 'healing_potion')}<i class="n">${hp ? hp.q : 0}</i></button><button data-a="explore" class="txt">Explore</button>`);
     put('act', `<button data-a="wait" class="txt">Wait</button><button data-a="act" class="${c.k}" aria-label="${c.n}">${c.ic ? ic('icon', c.ic) : ''}<span>${c.n}</span></button>`);
   };
   U.banner = (t, s) => { $('toast').innerHTML = `<div class="zt">${esc(t)}</div><div class="zs">${esc(s)}</div>`; U.showToast(2600); };

@@ -28,7 +28,7 @@ const R = (() => {
   /* ms a step takes: the walk animation and the held pad share it */
   const PACE = { Calm: 250, Normal: 195, Quick: 145 }; let pace = 'Normal'; try { pace = localStorage.getItem('od_pace') || 'Normal'; } catch (e) { } if (!PACE[pace]) pace = 'Normal';
   function setPace(n) { pace = n; try { localStorage.setItem('od_pace', n); } catch (e) { } }
-  const topPad = () => (vh < 520 ? 60 : 110 + barH * 1.6) * dpr, botPad = () => (vh < 520 ? 80 : vh < 740 ? 200 : 232) * dpr;
+  const topPad = () => (vh < 520 ? 60 : 110 + barH * 1.6) * dpr, botPad = () => (vh < 520 ? 80 : vh < 740 ? 214 : 262) * dpr;
   const ent = (id, x, y) => { let e = ents.get(id); if (!e) { e = { x, y, fx: 0, fy: 0, lt: 0, hit: 0, born: time }; ents.set(id, e); } return e; };
   function reset() { ents.clear(); dying = []; texts = []; parts = []; projs = []; areas = []; bursts = []; lit = null; snapCam = true; }
 
