@@ -13,10 +13,11 @@ const R = (() => {
      Tile edges that fall between pixels let the background through as thin flickering lines. */
   let cap = 3, vw = 0, vh = 0, barH = 0, tc = {}, wallShade = null;
   function resize() {
-    /* installed on iOS and drawn under the status bar, innerHeight comes up short by exactly that bar */
+    /* Installed on iOS and drawn under the status bar, the app is cut off short at the bottom by that bar's height, and nothing
+       can be painted there. So stay inside the visible part; the cut-off strip already clears the home indicator. */
     const doc = document.documentElement, pr = document.createElement('i'); pr.style.cssText = 'position:absolute;visibility:hidden;height:env(safe-area-inset-top,0px)'; document.body.appendChild(pr); const bar = barH = pr.offsetHeight; pr.remove();
-    const gap = screen.height - innerHeight, full = innerHeight + (navigator.standalone && innerHeight > innerWidth && gap > 0 && gap <= bar + 6 ? gap : 0);
-    doc.style.setProperty('--vh', full + 'px');
+    const gap = screen.height - innerHeight, full = innerHeight, short = navigator.standalone && innerHeight > innerWidth && bar > 0 && gap >= 20 && gap <= bar + 6;
+    doc.style.setProperty('--vh', full + 'px'); if (short) doc.style.setProperty('--sb', '0px'); else doc.style.removeProperty('--sb');
     dpr = Math.min(window.devicePixelRatio || 1, cap); vw = innerWidth; vh = full; W = Math.round(vw * dpr); H = Math.round(vh * dpr); cv.width = W; cv.height = H; cv.style.width = W / dpr + 'px'; cv.style.height = H / dpr + 'px';
     const want = (vh < 520 ? 38 : Math.max(36, Math.min(64, Math.min(vw, 620) / 9))) * dpr; TS = Math.max(32, Math.round(want / 32) * 32); tc = {}; wallShade = null; snapCam = true;
   }
