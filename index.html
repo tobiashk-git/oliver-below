@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Oliver Below</title>
+<meta name="description" content="A room-by-room roguelike beneath the Valley of Adventure.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Oliver Below">
+<meta name="theme-color" content="#14100c">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="cv" aria-label="Dungeon view"></canvas>
+
+<div id="hud" hidden>
+  <button id="hudCard" aria-label="Open character">
+    <span class="port" id="hudPort"></span>
+    <span class="bars">
+      <span class="hl"><b id="hudZone"></b><i id="hudFloor"></i></span>
+      <span class="bar hp"><u id="hpFill"></u><u id="wardFill"></u><em id="hpTxt"></em></span>
+      <span class="bar mp"><u id="mpFill"></u><em id="mpTxt"></em></span>
+      <span class="bar xp"><u id="xpFill"></u></span>
+    </span>
+  </button>
+  <div id="hudBtns"><button id="btnMap" aria-label="Map">Map</button><button id="btnMenu" aria-label="Menu">Menu</button></div>
+  <div id="chips"></div>
+  <div id="bossBar" hidden><b></b><span class="bar hp"><u></u></span></div>
+</div>
+
+<div id="toast" hidden></div>
+<div id="foot" hidden>
+  <div id="log" aria-live="polite"></div>
+  <div id="ctx"></div>
+  <div id="bar"></div>
+</div>
+<div id="target" hidden><span></span><button>Cancel</button></div>
+
+<div id="sheet" hidden></div>
+<div id="modal" hidden></div>
+<div id="title"></div>
+<div id="fade"></div>
+
+<script charset="utf-8" src="js/atlas.js"></script>
+<script charset="utf-8" src="js/data.js"></script>
+<script charset="utf-8" src="js/dungeon.js"></script>
+<script charset="utf-8" src="js/engine.js"></script>
+<script charset="utf-8" src="js/audio.js"></script>
+<script charset="utf-8" src="js/render.js"></script>
+<script charset="utf-8" src="js/ui.js"></script>
+<script charset="utf-8" src="js/main.js"></script>
+</body>
+</html>
