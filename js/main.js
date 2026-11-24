@@ -96,6 +96,8 @@ const Main = (() => {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { M.stop(); tick(); Save.put(); } else lastAct = performance.now(); }); addEventListener('pagehide', () => Save.put());
 
   loadAll().then(() => { UI.title(); $('title').classList.add('ready'); });
+  /* a new version takes over straight away when nobody is mid-run */
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) { let once = false; navigator.serviceWorker.addEventListener('controllerchange', () => { if (!once && UI.screen === 'title') { once = true; location.reload(); } }); }
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.includes('claude')) navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(r => r.active && r.active.postMessage('refill')).catch(() => { });
   return M;
 })();

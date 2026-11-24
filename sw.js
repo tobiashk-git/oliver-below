@@ -1,5 +1,5 @@
 /* Offline play. Bump VERSION on every deploy. */
-const VERSION = 'oliver-below-v2';
+const VERSION = 'oliver-below-v3';
 const CORE = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/hero.webp',
   ...['atlas', 'data', 'dungeon', 'engine', 'audio', 'render', 'ui', 'main'].map(n => `js/${n}.js`),
   ...['mon', 'port', 'icon', 'tile', 'prop', 'gate_barrow', 'gate_ice', 'gate_grove', 'gate_caldera', 'gate_temple', 'gate_castle'].map(n => `assets/${n}.webp`),

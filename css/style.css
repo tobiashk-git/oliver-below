@@ -56,7 +56,7 @@ button:disabled { opacity: .42; }
 
 /* ---- sheets: anchored to the top ---- */
 #sheet, #modal { position: fixed; inset: 0; z-index: 30; background: rgba(4, 3, 2, .66); display: flex; justify-content: center; align-items: flex-start; padding: calc(var(--st) + 10px) calc(var(--sr) + 10px) calc(var(--sb) + 10px) calc(var(--sl) + 10px); }
-#modal { z-index: 40; background: rgba(4, 3, 2, .78); }
+#modal { z-index: 55; background: rgba(4, 3, 2, .78); }
 .panel { width: 100%; max-width: 520px; max-height: 100%; background: #18140f; border: 2px solid var(--line); border-radius: 14px; padding: 12px; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; animation: drop .18s ease-out; overscroll-behavior: contain; }
 #sheet .panel { height: 100%; display: flex; flex-direction: column; }
 @keyframes drop { from { transform: translateY(-14px); opacity: 0; } }
