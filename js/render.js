@@ -14,7 +14,8 @@ const R = (() => {
     const short = Math.min(W, 620); TS = Math.max(36, Math.min(64, Math.round(short / 9))); if (H < 520) TS = 38; snapCam = true;
   }
   addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250)); resize();
-  const topPad = () => H < 520 ? 60 : 118, botPad = () => H < 520 ? 80 : 150;
+  const STEP = 138; /* ms a step takes: the walk animation and the held pad share it */
+  const topPad = () => H < 520 ? 60 : 118, botPad = () => H < 520 ? 80 : H < 740 ? 200 : 232;
   const ent = (id, x, y) => { let e = ents.get(id); if (!e) { e = { x, y, fx: 0, fy: 0, lt: 0, hit: 0, born: time }; ents.set(id, e); } return e; };
   function reset() { ents.clear(); dying = []; texts = []; parts = []; projs = []; areas = []; bursts = []; lit = null; snapCam = true; }
 
@@ -64,9 +65,11 @@ const R = (() => {
     if (!lit || lit.length !== n) { lit = new Float32Array(n); snapCam = true; }
     /* ease positions */
     const pe = ent('p', p.x, p.y); const ease = (e, x, y, k) => { const f = 1 - Math.pow(.5, dt * k); e.mv = Math.abs(x - e.x) + Math.abs(y - e.y) > .03; e.x += (x - e.x) * f; e.y += (y - e.y) * f; if (Math.abs(x - e.x) + Math.abs(y - e.y) > 6) { e.x = x; e.y = y; } };
-    ease(pe, p.x, p.y, 26); for (const m of G.mons) ease(ent(m.id, m.x, m.y), m.x, m.y, 20); if (G.luigi) ease(ent('luigi', G.luigi.x, G.luigi.y), G.luigi.x, G.luigi.y, 16);
+    /* constant speed, so held walking glides instead of stop-starting */
+    const glide = (e, x, y, ms) => { const st = dt * 1000 / ms, far = Math.max(Math.abs(x - e.x), Math.abs(y - e.y)), k = far > 1.3 ? far / 1.1 : 1; if (far > 5) { e.x = x; e.y = y; } const mv = far > .002; if (mv) e.mvT = time; e.mv = mv || time - (e.mvT || 0) < .06; const g = (a, b) => Math.abs(b - a) <= st * k ? b : a + Math.sign(b - a) * st * k; e.x = g(e.x, x); e.y = g(e.y, y); };
+    glide(pe, p.x, p.y, STEP); for (const m of G.mons) ease(ent(m.id, m.x, m.y), m.x, m.y, 20); if (G.luigi) ease(ent('luigi', G.luigi.x, G.luigi.y), G.luigi.x, G.luigi.y, 16);
     const tx = (pe.x + .5) * s - W / 2, ty = (pe.y + .5) * s - (topPad() + (H - topPad() - botPad()) / 2);
-    if (snapCam) { camX = tx; camY = ty; snapCam = false; } else { const f = 1 - Math.pow(.5, dt * 11); camX += (tx - camX) * f; camY += (ty - camY) * f; }
+    if (snapCam) { camX = tx; camY = ty; snapCam = false; } else { const f = 1 - Math.pow(.5, dt * 15); camX += (tx - camX) * f; camY += (ty - camY) * f; }
     shake = Math.max(0, shake - dt * 26); const sx = shake ? (Math.random() - .5) * shake : 0, sy = shake ? (Math.random() - .5) * shake : 0;
     cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.fillStyle = z.fog; cx.fillRect(0, 0, W, H); cx.imageSmoothingEnabled = false;
     const ox = Math.round((camX + sx) * dpr) / dpr, oy = Math.round((camY + sy) * dpr) / dpr; cx.translate(-ox, -oy);
@@ -100,7 +103,8 @@ const R = (() => {
     for (const m of G.mons) if (m.intent) for (const i of m.intent.tiles) { if (!G.vis[i] && !G.seen[i]) continue; const X = (i % G.w) * s, Y = ((i / G.w) | 0) * s; cx.fillStyle = `rgba(230,40,24,${pulse})`; cx.fillRect(X + 1, Y + 1, s - 2, s - 2); cx.strokeStyle = 'rgba(255,130,100,.95)'; cx.lineWidth = 2; cx.strokeRect(X + 2, Y + 2, s - 4, s - 4); }
     /* travel path and selection */
     if (st.path) { cx.fillStyle = 'rgba(236,197,90,.7)'; for (const [x, y] of st.path) { cx.beginPath(); cx.arc((x + .5) * s, (y + .5) * s, s * .07, 0, 7); cx.fill(); } }
-    if (st.target) { const r = st.target.range; cx.fillStyle = 'rgba(236,197,90,.10)'; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (G.vis[ix(x, y)] && G.t[ix(x, y)] !== T.WALL && cheb(x, y, p.x, p.y) <= r) cx.fillRect(x * s, y * s, s, s); for (const m of G.mons) if (visible(m.x, m.y) && cheb(m.x, m.y, p.x, p.y) <= r) { cx.strokeStyle = '#ffd24a'; cx.lineWidth = 2; cx.strokeRect(m.x * s + 2, m.y * s + 2, s - 4, s - 4); } }
+    if (st.target) { const r = st.target.range; cx.fillStyle = 'rgba(236,197,90,.10)'; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (G.vis[ix(x, y)] && G.t[ix(x, y)] !== T.WALL && cheb(x, y, p.x, p.y) <= r) cx.fillRect(x * s, y * s, s, s); for (const m of G.mons) if (visible(m.x, m.y) && cheb(m.x, m.y, p.x, p.y) <= r) { cx.strokeStyle = '#ffd24a'; cx.lineWidth = 2; cx.strokeRect(m.x * s + 2, m.y * s + 2, s - 4, s - 4); }
+      const [qx, qy] = st.target.sel, k = 3 + Math.sin(time * 8) * 1.5; cx.fillStyle = 'rgba(255,230,140,.28)'; cx.fillRect(qx * s, qy * s, s, s); cx.strokeStyle = '#fff3b0'; cx.lineWidth = 3; cx.strokeRect(qx * s + k, qy * s + k, s - k * 2, s - k * 2); }
     /* ---- standing things, back to front ---- */
     const draw = [];
     for (const it of G.items) if (G.seen[ix(it.x, it.y)]) draw.push([it.y - .2, 0, it]);
@@ -177,5 +181,5 @@ const R = (() => {
   const toTile = (px, py) => [Math.floor((px + camX) / TS), Math.floor((py + camY) / TS)];
   const screenOf = (x, y) => [(x + .5) * TS - camX, (y + .5) * TS - camY];
   requestAnimationFrame(frame);
-  return { st, toTile, screenOf, reset, drawMap, get delay() { return lastDelay; }, get ts() { return TS; }, recompose() { heroKey = ''; } };
+  return { st, STEP, toTile, screenOf, reset, drawMap, get delay() { return lastDelay; }, get ts() { return TS; }, recompose() { heroKey = ''; } };
 })();

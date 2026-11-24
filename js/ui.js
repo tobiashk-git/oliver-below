@@ -22,7 +22,7 @@ const Save = {
 
 const UI = (() => {
   const U = { screen: 'title', tab: 'bag', sel: null, tipQ: [], toastT: 0 };
-  let lastBar = '', lastLog = -1, lastChips = '';
+  let lastLog = -1, lastChips = '';
 
   /* ---------------- HUD ---------------- */
   U.hud = () => {
@@ -36,25 +36,27 @@ const UI = (() => {
     const c = chips.join(''); if (c !== lastChips) { $('chips').innerHTML = c; lastChips = c; }
     const b = G.mons.find(m => m.boss && m.ai === 'hunt' && (visible(m.x, m.y) || m.hp < m.mhp)); $('bossBar').hidden = !b; if (b) { $('bossBar').querySelector('b').textContent = mdef(b).n; $('bossBar').querySelector('u').style.width = Math.max(0, b.hp / b.mhp * 100) + '%'; }
     if (G.log.length) { const k = G.log.length + '|' + G.log[G.log.length - 1].s + G.log[G.log.length - 1].n; if (k !== lastLog) { lastLog = k; const l = G.log.slice(-3), t = G.log[G.log.length - 1].n; $('log').innerHTML = l.map(e => `<p class="${e.c} ${t - e.n > 4 ? 'old' : ''}">${esc(e.s)}</p>`).join(''); } }
-    U.bar(); U.ctx();
+    U.bar();
   };
   U.better = it => { const p = G.p; if (it.k !== 'gear') return false; const e = p.eq[it.slot]; if (!e) return true; if (it.slot === 'weapon') return gearAtk(it) > gearAtk(e) + .05; if (it.slot === 'charm') return false; return gearDef(it) > gearDef(e) + .05; };
+  const put = (id, h) => { if (lastHtml[id] !== h) { lastHtml[id] = h; const el = $(id), x = el.scrollLeft; el.innerHTML = h; el.scrollLeft = x; } };
+  const lastHtml = {};
   U.bar = () => {
-    const p = G.p, hp = p.bag.find(b => b.k === 'potion' && b.t === 'heal'), nb = p.bag.some(b => U.better(b) && !b.seen);
-    let h = `<button data-a="wait" class="txt">Wait</button><button data-a="explore" class="txt">Explore</button>`;
-    h += `<button data-a="heal" class="${hp ? '' : 'low'}" aria-label="Drink a healing potion">${ic('icon', 'healing_potion')}<i class="n">${hp ? hp.q : 0}</i></button>`;
-    const sp = Object.keys(p.spells); if (sp.length) h += '<div class="spells">' + sp.map(s => `<button data-a="spell" data-s="${s}" class="${canCast(s) ? '' : 'low'} ${R.st.target && R.st.target.spell === s ? 'on' : ''}" aria-label="${SPELLS[s].n}">${ic('icon', SPELLS[s].ic)}<i class="n">${SPELLS[s].mp}</i><span class="l">${SPELLS[s].n.split(' ').pop()}</span></button>`).join('') + '</div>';
-    h += `<button data-a="bag" aria-label="Bag" class="txt">Bag${nb ? '<i class="dot"></i>' : ''}</button>`;
-    if (h !== lastBar) { const sc = document.querySelector('#bar .spells'), x = sc ? sc.scrollLeft : 0; $('bar').innerHTML = h; lastBar = h; const s2 = document.querySelector('#bar .spells'); if (s2) s2.scrollLeft = x; }
+    const p = G.p, hp = p.bag.find(b => b.k === 'potion' && b.t === 'heal'), nb = p.bag.some(b => U.better(b) && !b.seen), c = Main.context(); Main.ctxChanged(c.k + (c.m ? '' : c.n));
+    put('spells', Object.keys(p.spells).map(s => `<button data-a="spell" data-s="${s}" class="${canCast(s) ? '' : 'low'} ${R.st.target && R.st.target.spell === s ? 'on' : ''}" aria-label="${SPELLS[s].n}">${ic('icon', SPELLS[s].ic)}<i class="n">${SPELLS[s].mp}</i></button>`).join(''));
+    put('bar', `<button data-a="explore" class="txt">Explore</button><button data-a="heal" class="${hp ? '' : 'low'}" aria-label="Drink a healing potion">${ic('icon', 'healing_potion')}<i class="n">${hp ? hp.q : 0}</i></button><button data-a="bag" class="txt">Bag${nb ? '<i class="dot"></i>' : ''}</button>`);
+    put('act', `<button data-a="wait" class="txt">Wait</button><button data-a="act" class="${c.k}" aria-label="${c.n}">${c.ic ? ic('icon', c.ic) : ''}<span>${c.n}</span></button>`);
   };
-  let lastCtx = '';
-  U.ctx = () => { const on = tileAt(G.p.x, G.p.y) === T.STAIRS; const h = on ? `<button class="pri" data-a="descend">Descend to floor ${G.floor + 1}</button>` : ''; if (h !== lastCtx) { $('ctx').innerHTML = h; lastCtx = h; } };
   U.banner = (t, s) => { $('toast').innerHTML = `<div class="zt">${esc(t)}</div><div class="zs">${esc(s)}</div>`; U.showToast(2600); };
   U.tip = (id, s) => { if (Meta.d.tips[id] || !G) return; Meta.d.tips[id] = 1; Meta.save(); $('toast').innerHTML = `<div class="tip">${esc(s)}</div>`; U.showToast(5200); };
   U.showToast = ms => { const t = $('toast'); t.hidden = false; t.style.transition = 'none'; t.style.opacity = 1; clearTimeout(U.toastT); U.toastT = setTimeout(() => { t.style.transition = 'opacity .5s'; t.style.opacity = 0; }, ms); };
   U.fade = () => { $('fade').classList.add('on'); setTimeout(() => $('fade').classList.remove('on'), 420); };
   U.onFloor = () => { const z = zoneOf(G.floor), n = (G.floor - 1) % FLOORS_PER_ZONE; Snd.play(isBossFloor(G.floor) ? 'battle' : z.music); if (n === 0) U.banner(z.name, z.sub); else if (isBossFloor(G.floor)) U.banner(`Floor ${G.floor}`, 'Something is waiting. There is a bed, at least.'); else U.banner(`Floor ${G.floor}`, G.floor === 1 ? '' : z.name); $('fade').classList.remove('on'); };
-  U.target = (o) => { R.st.target = o; $('target').hidden = !o; if (o) $('target').querySelector('span').textContent = o.label; U.bar(); };
+  U.target = (o) => { R.st.target = o; $('target').hidden = !o; if (o) $('target').querySelector('span').textContent = o.label + ': pad moves the mark'; if (G && U.screen === 'game') U.bar(); };
+
+  U.isLefty = () => { try { return localStorage.getItem('od_lefty') === '1'; } catch (e) { return false; } };
+  U.lefty = v => { try { localStorage.setItem('od_lefty', v ? '1' : '0'); } catch (e) { } $('foot').classList.toggle('lefty', v); };
+  $('foot').classList.toggle('lefty', U.isLefty());
 
   /* ---------------- sheets ---------------- */
   U.open = tab => { U.tab = tab; U.sel = null; $('sheet').hidden = false; U.sheet(); Main.stop(); };
@@ -139,12 +141,12 @@ const UI = (() => {
   /* look at a monster */
   U.inspect = m => { const d = mdef(m), hits = Math.max(1, Math.ceil(m.hp / Math.max(1, dmgF(S.atk, m.def * (1 - (S.w.pierce || 0)))))), dm = Math.round(dmgF(m.atk, S.def)); const a = ATLAS.mon; modal(`<div class="hero">${ic('mon', d.art)}<div><h2>${esc(d.n)}</h2><p class="sub">${Math.ceil(m.hp)} / ${m.mhp} health${m.ai === 'sleep' ? ', asleep' : ''}</p></div></div><p style="margin:10px 0;line-height:1.45">${esc(d.d)}</p><div class="stats">${statLine('Hits to beat', '~' + hits)}${statLine('Hits you for', '~' + dm)}${statLine('Speed', (d.spd || 100) > 110 ? 'Fast' : (d.spd || 100) < 90 ? 'Slow' : 'Normal')}${statLine('Ailments', Object.keys(m.st).map(s => STATUS[s].n).join(', ') || 'None')}</div><div class="row"><button class="pri" data-x="1">Close</button></div>`, U.closeModal, U.closeModal); };
   U.menu = () => {
-    Main.stop(); modal(`<h2>Paused</h2><p class="sub">Your run saves itself. Floor ${G.floor}, ${mmss(G.time)} so far.</p><div style="margin-top:8px"><label class="setrow">Music <input type="range" min="0" max="1" step=".05" value="${Snd.opt.music}" data-v="music"></label><label class="setrow">Sounds <input type="range" min="0" max="1" step=".05" value="${Snd.opt.sfx}" data-v="sfx"></label></div><div class="row"><button class="pri" data-x="1">Keep going</button><button data-h="1">How to play</button></div><div class="row"><button data-q="1">Save and quit</button><button data-g="1">End this run</button></div>`, d => {
-      if (d.x) U.closeModal(); if (d.h) U.help(U.menu); if (d.q) { Save.put(); U.closeModal(); U.title(); } if (d.g) modal(`<h2>End this run?</h2><p class="sub">Oliver heads home from floor ${G.floor}. This cannot be undone.</p><div class="row"><button data-n="1">Keep playing</button><button class="pri" data-y="1">End run</button></div>`, d => { if (d.n) U.closeModal(); if (d.y) { U.closeModal(); G.over = { by: 'choice', floor: G.floor, won: G.won, home: 1 }; Main.after(); } });
+    Main.stop(); modal(`<h2>Paused</h2><p class="sub">Your run saves itself. Floor ${G.floor}, ${mmss(G.time)} so far.</p><div style="margin-top:8px"><label class="setrow">Music <input type="range" min="0" max="1" step=".05" value="${Snd.opt.music}" data-v="music"></label><label class="setrow">Sounds <input type="range" min="0" max="1" step=".05" value="${Snd.opt.sfx}" data-v="sfx"></label><div class="setrow">Move pad <button data-l="1">${U.isLefty() ? 'Right side' : 'Left side'}</button></div></div><div class="row"><button class="pri" data-x="1">Keep going</button><button data-h="1">How to play</button></div><div class="row"><button data-q="1">Save and quit</button><button data-g="1">End this run</button></div>`, d => {
+      if (d.x) U.closeModal(); if (d.h) U.help(U.menu); if (d.q) { Main.saveNow(); U.closeModal(); U.title(); } if (d.l) { U.lefty(!U.isLefty()); U.menu(); } if (d.g) modal(`<h2>End this run?</h2><p class="sub">Oliver heads home from floor ${G.floor}. This cannot be undone.</p><div class="row"><button data-n="1">Keep playing</button><button class="pri" data-y="1">End run</button></div>`, d => { if (d.n) U.closeModal(); if (d.y) { U.closeModal(); G.over = { by: 'choice', floor: G.floor, won: G.won, home: 1 }; Main.after(); } });
     }, U.closeModal);
   };
   $('modal').addEventListener('input', e => { if (e.target.dataset.v) Snd.set(e.target.dataset.v, +e.target.value); });
-  U.help = back => modal(`<h2>How to play</h2><div class="list" style="margin-top:8px">${['Tap a tile to walk there. Swipe to take one step. Tap a monster beside you to attack; hold a finger on one to inspect it.', 'Nothing moves until you do. Take your time.', 'Wait passes a turn. Hold Wait to rest until you are well. Explore walks the floor for you and stops when anything happens.', ...TIPS.slice(1), 'When your health runs out, Oliver nods off and the run is over. The next one starts from the top, with everything moved around. What you keep is what you learned, and new kits for getting deeper.'].map(t => `<p class="sub" style="color:var(--text)">${esc(t)}</p>`).join('')}</div><div class="row"><button class="pri" data-x="1">Close</button></div>`, () => { U.closeModal(); if (back) back(); }, () => { U.closeModal(); if (back) back(); });
+  U.help = back => modal(`<h2>How to play</h2><div class="list" style="margin-top:8px">${['Push the pad to step, hold it to keep walking. Push into a monster to attack it. The pad lets go when something new appears or a blow is about to land.', 'The big gold button does whatever makes sense: attack, open, go down, or wait. You can also tap the map to walk there, or hold a finger on a monster to inspect it.', 'Nothing moves until you do. Take your time.', 'Wait passes a turn. Hold it to rest until you are well. Spells pick the nearest target: press the gold button to cast, or move the mark with the pad first. Explore walks the floor for you and stops when anything happens.', ...TIPS.slice(1), 'When your health runs out, Oliver nods off and the run is over. The next one starts from the top, with everything moved around. What you keep is what you learned, and new kits for getting deeper.'].map(t => `<p class="sub" style="color:var(--text)">${esc(t)}</p>`).join('')}</div><div class="row"><button class="pri" data-x="1">Close</button></div>`, () => { U.closeModal(); if (back) back(); }, () => { U.closeModal(); if (back) back(); });
 
   /* ---------------- title ---------------- */
   const show = g => { U.screen = g; for (const i of ['hud', 'foot']) $(i).hidden = g !== 'game'; $('title').hidden = g === 'game'; if (g !== 'game') { $('sheet').hidden = true; $('target').hidden = true; } };
