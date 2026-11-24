@@ -64,7 +64,7 @@ const Main = (() => {
     if (!ok || !run || G.over || G.floor !== fl) { M.stop(); return; }
     if (threats().some(i => !tk.includes(i)) || p.hp < hp || Object.keys(p.st).length > st || awakeInView().length) { M.stop(); UI.hud(); return; }
     if (!path.length && (run.kind !== 'explore' || tileAt(p.x, p.y) === T.STAIRS)) { M.stop(); UI.hud(); return; }
-    timer = setTimeout(loop, R.STEP);
+    timer = setTimeout(loop, R.step);
   }
   M.travel = (x, y) => { M.stop(); const path = pathTo(x, y); if (!path || !path.length) return; run = { kind: 'travel', path }; loop(); };
   M.explore = () => { if (run) { M.stop(); return; } if (awakeInView().length) { say('Not with company.', 'bad'); UI.hud(); return; } run = { kind: 'explore' }; loop(); };
@@ -125,18 +125,18 @@ const Main = (() => {
   function aimPad(e) {
     const r = pad.getBoundingClientRect(), rad = r.width / 2, dx = e.clientX - r.left - rad, dy = e.clientY - r.top - rad, d = Math.hypot(dx, dy), tr = Math.min(d, rad - knob.offsetWidth / 2);
     P.vx = dx; P.vy = dy; knob.style.transform = d ? `translate(${dx / d * tr}px, ${dy / d * tr}px)` : '';
-    if (d < 11) { P.dir = null; P.paused = false; return; }
+    if (d < (P.dir === null ? 20 : 14)) { P.dir = null; P.paused = false; return; }
     /* straight directions get the wider share, so corridors are easy; a little stickiness stops flicker */
     const a = Math.atan2(dy, dx) / (Math.PI / 4); let best = 0, bs = 9;
-    for (let i = 0; i < 8; i++) { const q = Math.abs(((a - i) % 8 + 12) % 8 - 4) + (i % 2 ? .12 : -.06) - (P.dir === i ? .13 : 0); if (q < bs) { bs = q; best = i; } }
+    for (let i = 0; i < 8; i++) { const q = Math.abs(((a - i) % 8 + 12) % 8 - 4) + (i % 2 ? .2 : -.1) - (P.dir === i ? .2 : 0); if (q < bs) { bs = q; best = i; } }
     if (P.dir !== best) {
       const first = P.dir === null; P.dir = best; P.paused = false; P.fresh = true;
       if (first) { clearTimeout(P.t); P.t = setTimeout(padStep, 34); } else if (!P.t) padStep();
     }
   }
   function padStep() {
-    P.t = 0; if (P.dir === null || P.paused) return; const dt = padMove(KEY8[P.dir]); P.fresh = false;
-    if (!dt) { P.paused = true; return; } P.t = setTimeout(padStep, dt);
+    P.t = 0; if (P.dir === null || P.paused) return; const first = P.fresh, dt = padMove(KEY8[P.dir]); P.fresh = false;
+    if (!dt) { P.paused = true; return; } P.t = setTimeout(padStep, first ? Math.max(dt, R.step + 75) : dt); /* one push is one step; keep holding to walk */
   }
   const open = (x, y, d) => inb(x + d[0], y + d[1]) && canStep(x, y, d[0], d[1]) && walkable(x + d[0], y + d[1]);
   /* one step (or blow) in direction d; returns the delay before the next, or 0 to let go */
@@ -149,7 +149,16 @@ const Main = (() => {
     /* pushing diagonally into a wall slides along it, whichever way the thumb leans */
     if (!m && d[0] && d[1] && !open(p.x, p.y, d) && !(blockFeat(p.x + d[0], p.y + d[1]) && canStep(p.x, p.y, d[0], d[1]))) {
       const s = [[d[0], 0], [0, d[1]]].filter(q => open(p.x, p.y, q) && !monAt(p.x + q[0], p.y + q[1])); if (!s.length) return 0;
-      if (s.length > 1 && Math.abs(P.vy) > Math.abs(P.vx)) s.reverse(); d = s[0];
+      const dr = s.find(q => tileAt(p.x + q[0], p.y + q[1]) === T.DOOR); if (s.length > 1 && Math.abs(P.vy) > Math.abs(P.vx)) s.reverse(); d = dr || s[0];
+    }
+    /* pushing straight at a wall with a doorway or gap one or two tiles along: step towards it */
+    if (!m && !(d[0] && d[1]) && tileAt(p.x + d[0], p.y + d[1]) === T.WALL) {
+      const side = d[0] ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]], lean = d[0] ? P.vy : P.vx; if (lean < 0) side.reverse(); let go = null;
+      for (let n = 1; n <= 2 && !go; n++) for (const q of side) {
+        let ok = true; for (let k = 1; k <= n; k++) { const X = p.x + q[0] * k, Y = p.y + q[1] * k; if (!open(X - q[0], Y - q[1], q) || monAt(X, Y) || tileAt(X, Y) === T.LAVA) ok = false; }
+        const t = tileAt(p.x + q[0] * n + d[0], p.y + q[1] * n + d[1]); if (ok && (t === T.DOOR || t === T.LOCKED || (n === 1 && t !== T.WALL && inb(p.x + q[0] + d[0], p.y + q[1] + d[1])))) { go = q; break; }
+      }
+      if (go) d = go;
     }
     const x = p.x + d[0], y = p.y + d[1]; if (!inb(x, y)) return 0;
     if (!m) {
@@ -161,7 +170,10 @@ const Main = (() => {
     if (!ACT.move(d[0], d[1])) { p.dir = dirOf(d[0], d[1]); if (G.pending.length) M.after(); else UI.hud(); return 0; }
     M.after(); if (G.floor !== fl || stopHold(hp)) return 0; if (m) return 300;
     if ((p.x === ox && p.y === oy) || threats().some(i => !tk.includes(i)) || tileAt(p.x, p.y) === T.STAIRS) return 0;
-    return awakeInView().length ? R.STEP + 60 : R.STEP;
+    /* a doorway or turning beside you: hesitate, so it is easy to turn into */
+    const gap = (X, Y) => { const t = tileAt(X, Y); return t === T.DOOR || t === T.LOCKED || t === T.STAIRS; };
+    const snag = !(d[0] && d[1]) && [[d[1], d[0]], [-d[1], -d[0]]].some(q => gap(p.x + q[0], p.y + q[1]) || (walkable(p.x + q[0], p.y + q[1]) && tileAt(ox + q[0], oy + q[1]) === T.WALL));
+    return R.step + (snag ? 170 : 0) + (awakeInView().length ? 50 : 0);
   }
   const letGo = () => { P.id = null; clearTimeout(P.t); P.t = 0; P.dir = null; P.paused = false; pad.classList.remove('on'); knob.style.transform = ''; };
   pad.addEventListener('pointerdown', e => { e.preventDefault(); letGo(); P.id = e.pointerId; try { pad.setPointerCapture(e.pointerId); } catch (x) { } pad.classList.add('on'); aimPad(e); });

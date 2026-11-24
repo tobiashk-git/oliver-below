@@ -25,7 +25,9 @@ const R = (() => {
   /* if the phone cannot keep up at full sharpness, drop one step and carry on */
   let slowN = 0, slowT = 0;
   function watch(ms) { if (ms > 250) return; slowT += ms; if (++slowN >= 150) { if (slowT / slowN > 26 && cap > 2) { cap = 2; resize(); } slowN = slowT = 0; } }
-  const STEP = 138; /* ms a step takes: the walk animation and the held pad share it */
+  /* ms a step takes: the walk animation and the held pad share it */
+  const PACE = { Calm: 250, Normal: 195, Quick: 145 }; let pace = 'Normal'; try { pace = localStorage.getItem('od_pace') || 'Normal'; } catch (e) { } if (!PACE[pace]) pace = 'Normal';
+  function setPace(n) { pace = n; try { localStorage.setItem('od_pace', n); } catch (e) { } }
   const topPad = () => (vh < 520 ? 60 : 110 + barH * 1.6) * dpr, botPad = () => (vh < 520 ? 80 : vh < 740 ? 200 : 232) * dpr;
   const ent = (id, x, y) => { let e = ents.get(id); if (!e) { e = { x, y, fx: 0, fy: 0, lt: 0, hit: 0, born: time }; ents.set(id, e); } return e; };
   function reset() { ents.clear(); dying = []; texts = []; parts = []; projs = []; areas = []; bursts = []; lit = null; snapCam = true; }
@@ -81,7 +83,7 @@ const R = (() => {
     const pe = ent('p', p.x, p.y); const ease = (e, x, y, k) => { const f = 1 - Math.pow(.5, dt * k); e.mv = Math.abs(x - e.x) + Math.abs(y - e.y) > .03; e.x += (x - e.x) * f; e.y += (y - e.y) * f; if (Math.abs(x - e.x) + Math.abs(y - e.y) > 6) { e.x = x; e.y = y; } };
     /* constant speed, so held walking glides instead of stop-starting */
     const glide = (e, x, y, ms) => { const st = dt * 1000 / ms, far = Math.max(Math.abs(x - e.x), Math.abs(y - e.y)), k = far > 1.3 ? far / 1.1 : 1; if (far > 5) { e.x = x; e.y = y; } const mv = far > .002; if (mv) e.mvT = time; e.mv = mv || time - (e.mvT || 0) < .06; const g = (a, b) => Math.abs(b - a) <= st * k ? b : a + Math.sign(b - a) * st * k; e.x = g(e.x, x); e.y = g(e.y, y); };
-    glide(pe, p.x, p.y, STEP); for (const m of G.mons) ease(ent(m.id, m.x, m.y), m.x, m.y, 20); if (G.luigi) ease(ent('luigi', G.luigi.x, G.luigi.y), G.luigi.x, G.luigi.y, 16);
+    glide(pe, p.x, p.y, PACE[pace]); for (const m of G.mons) ease(ent(m.id, m.x, m.y), m.x, m.y, 20); if (G.luigi) ease(ent('luigi', G.luigi.x, G.luigi.y), G.luigi.x, G.luigi.y, 16);
     const tx = (pe.x + .5) * s - W / 2, ty = (pe.y + .5) * s - (topPad() + (H - topPad() - botPad()) / 2);
     if (snapCam) { camX = tx; camY = ty; snapCam = false; } else { const f = 1 - Math.pow(.5, dt * 15); camX += (tx - camX) * f; camY += (ty - camY) * f; }
     shake = Math.max(0, shake - dt * 26); const sx = shake ? (Math.random() - .5) * shake * u : 0, sy = shake ? (Math.random() - .5) * shake * u : 0;
@@ -195,5 +197,5 @@ const R = (() => {
   const toTile = (px, py) => [Math.floor((px * dpr + camX) / TS), Math.floor((py * dpr + camY) / TS)];
   const screenOf = (x, y) => [((x + .5) * TS - camX) / dpr, ((y + .5) * TS - camY) / dpr];
   requestAnimationFrame(frame);
-  return { st, STEP, toTile, screenOf, reset, drawMap, get delay() { return lastDelay; }, get ts() { return TS; }, recompose() { heroKey = ''; } };
+  return { st, PACE, setPace, get pace() { return pace; }, get step() { return PACE[pace]; }, toTile, screenOf, reset, drawMap, get delay() { return lastDelay; }, get ts() { return TS; }, recompose() { heroKey = ''; } };
 })();
